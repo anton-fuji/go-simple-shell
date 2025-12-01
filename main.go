@@ -43,6 +43,8 @@ func cmdInput(input string) error {
 		return cmdCat(args[1:])
 	case "ls":
 		return cmdLs(args[1:])
+	case "grep":
+		return cmdGrep(args[1:])
 	case "exit":
 		fmt.Println("Bye!!")
 		os.Exit(0)
@@ -84,7 +86,7 @@ func cmdLs(args []string) error {
 		dir = args[0]
 	}
 
-	// ディレクトリないのファイルを一覧取得j
+	// ディレクトリないのファイルを一覧取得
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("ls : %v", err)
@@ -99,5 +101,38 @@ func cmdLs(args []string) error {
 		}
 	}
 
+	return nil
+}
+
+func cmdGrep(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("grep usage : grep PATTERN FILE")
+	}
+
+	pattern := args[0]
+	filename := args[1]
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("grep : %v", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	lineNum := 0
+
+	// 行ごとにスキャン
+	for scanner.Scan() {
+		lineNum++
+		line := scanner.Text()
+		//パターンが含まれていれば表示
+		if strings.Contains(line, pattern) {
+			fmt.Printf("%d:%s\n", lineNum, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("grep: %v", err)
+	}
 	return nil
 }
