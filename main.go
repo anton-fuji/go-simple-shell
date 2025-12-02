@@ -47,6 +47,8 @@ func cmdInput(input string) error {
 		return cmdGrep(args[1:])
 	case "wc":
 		return cmdWc(args[1:])
+	case "help":
+		cmdHelp()
 	case "exit":
 		fmt.Println("Bye!!")
 		os.Exit(0)
@@ -144,33 +146,51 @@ func cmdWc(args []string) error {
 		return fmt.Errorf("missing file operand")
 	}
 
-	filename := args[0]
+	var totalLines, totalWords, totalBytes int
 
-	file, err := os.Open(filename)
-	if err != nil {
-		return fmt.Errorf("wc: %v", err)
+	for _, filename := range args {
+		file, err := os.Open(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "wc: %s: %v\n", filename, err)
+			continue
+		}
+
+		bytes, words, lines := countFile(file)
+		file.Close()
+		fmt.Printf("%7d %7d %7d %s\n", bytes, words, lines, filename)
+
+		totalBytes += bytes
+		totalWords += words
+		totalLines += lines
 	}
-	defer file.Close()
 
-	var (
-		lines int
-		words int
-		bytes int
-	)
+	if len(args) > 1 {
+		fmt.Printf("%7d %7d %7d total\n", totalLines, totalWords, totalBytes)
+	}
+	return nil
+}
 
+func countFile(file *os.File) (bytes, words, lines int) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		lines++
 		line := scanner.Text()
-		bytes += len(line) + 1 // +1 for newline
+		lines++
+		bytes += len(line) + 1
 		words += len(strings.Fields(line))
 	}
-
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("wc: %v", err)
+		fmt.Fprintf(os.Stderr, "wc: read error: %v\n", err)
 	}
 
-	fmt.Printf("%d %d %d %s\n", lines, words, bytes, filename)
+	return
+}
 
-	return nil
+func cmdHelp() {
+	fmt.Println("Available commands:")
+	fmt.Println("  cat FILE [FILE...]  - Display file contents")
+	fmt.Println("  ls [DIR]           - List directory contents")
+	fmt.Println("  grep PATTERN FILE  - Search for pattern in file")
+	fmt.Println("  wc FILE            - Count lines, words, and bytes")
+	fmt.Println("  help               - Show this help")
+	fmt.Println("  exit               - Exit the shell")
 }
