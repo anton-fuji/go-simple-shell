@@ -45,6 +45,8 @@ func cmdInput(input string) error {
 		return cmdLs(args[1:])
 	case "grep":
 		return cmdGrep(args[1:])
+	case "wc":
+		return cmdWc(args[1:])
 	case "exit":
 		fmt.Println("Bye!!")
 		os.Exit(0)
@@ -134,5 +136,41 @@ func cmdGrep(args []string) error {
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("grep: %v", err)
 	}
+	return nil
+}
+
+func cmdWc(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing file operand")
+	}
+
+	filename := args[0]
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("wc: %v", err)
+	}
+	defer file.Close()
+
+	var (
+		lines int
+		words int
+		bytes int
+	)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines++
+		line := scanner.Text()
+		bytes += len(line) + 1 // +1 for newline
+		words += len(strings.Fields(line))
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("wc: %v", err)
+	}
+
+	fmt.Printf("%d %d %d %s\n", lines, words, bytes, filename)
+
 	return nil
 }
