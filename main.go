@@ -19,14 +19,13 @@ func main() {
 			continue
 		}
 
-		// ここでcat が入力されてコマンドが実行される処理を書く
-		if err := cmdInput(input); err != nil {
+		if err := execInput(input); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}
 }
 
-func cmdInput(input string) error {
+func execInput(input string) error {
 	// 改行を削除して前後の空白を無くしていく
 	input = strings.TrimSpace(input)
 
@@ -155,13 +154,13 @@ func cmdWc(args []string) error {
 			continue
 		}
 
-		bytes, words, lines := countFile(file)
+		lines, words, bytes := countFile(file)
 		file.Close()
-		fmt.Printf("%7d %7d %7d %s\n", bytes, words, lines, filename)
+		fmt.Printf("%7d %7d %7d %s\n", lines, words, bytes, filename)
 
-		totalBytes += bytes
-		totalWords += words
 		totalLines += lines
+		totalWords += words
+		totalBytes += bytes
 	}
 
 	if len(args) > 1 {
@@ -170,7 +169,7 @@ func cmdWc(args []string) error {
 	return nil
 }
 
-func countFile(file *os.File) (bytes, words, lines int) {
+func countFile(file *os.File) (lines, words, bytes int) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
