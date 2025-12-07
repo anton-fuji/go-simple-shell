@@ -1,0 +1,3 @@
+Hello, World！
+GoGo~~!
+こちらはsample2.txtです。

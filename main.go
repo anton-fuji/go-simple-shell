@@ -26,14 +26,12 @@ func main() {
 }
 
 func execInput(input string) error {
-	// 改行を削除して前後の空白を無くしていく
 	input = strings.TrimSpace(input)
 
 	if input == "" {
 		return nil
 	}
 
-	// スペースで分割して、コマンドと引数を分ける
 	args := strings.Split(input, " ")
 	command := args[0]
 
@@ -63,16 +61,13 @@ func cmdCat(args []string) error {
 		return fmt.Errorf("non file oparand")
 	}
 
-	// 各ファイルの処理を順に行う
 	for _, filename := range args {
 		file, err := os.Open(filename)
 		if err != nil {
-			// 標準エラーを出力
 			fmt.Fprintf(os.Stderr, "cat: %s %v\n", filename, err)
 			continue
 		}
 
-		// ファイルの内容を標準出力にコピー
 		_, err = io.Copy(os.Stdout, file)
 		file.Close()
 		if err != nil {
@@ -89,13 +84,11 @@ func cmdLs(args []string) error {
 		dir = args[0]
 	}
 
-	// ディレクトリないのファイルを一覧取得
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("ls : %v", err)
 	}
 
-	// ファイル名を表示していく
 	for _, entry := range entries {
 		if entry.IsDir() {
 			fmt.Printf("%s/\n", entry.Name())
@@ -124,11 +117,9 @@ func cmdGrep(args []string) error {
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
 
-	// 行ごとにスキャン
 	for scanner.Scan() {
 		lineNum++
 		line := scanner.Text()
-		//パターンが含まれていれば表示
 		if strings.Contains(line, pattern) {
 			fmt.Printf("%d:%s\n", lineNum, line)
 		}
@@ -146,6 +137,7 @@ func cmdWc(args []string) error {
 	}
 
 	var totalLines, totalWords, totalBytes int
+	var hasErr bool
 
 	for _, filename := range args {
 		file, err := os.Open(filename)
@@ -154,8 +146,15 @@ func cmdWc(args []string) error {
 			continue
 		}
 
-		lines, words, bytes := countFile(file)
+		lines, words, bytes, err := countFile(file)
 		file.Close()
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "wc: %s %v\n", filename, err)
+			hasErr = true
+			continue
+		}
+
 		fmt.Printf("%7d %7d %7d %s\n", lines, words, bytes, filename)
 
 		totalLines += lines
@@ -166,30 +165,54 @@ func cmdWc(args []string) error {
 	if len(args) > 1 {
 		fmt.Printf("%7d %7d %7d total\n", totalLines, totalWords, totalBytes)
 	}
+	if hasErr {
+		return fmt.Errorf("wc: some files could not be read")
+	}
+
 	return nil
 }
 
-func countFile(file *os.File) (lines, words, bytes int) {
+func countFile(file *os.File) (lines, words, bytes int, err error) {
+	stat, err := file.Stat()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	bytes = int(stat.Size())
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		lines++
-		bytes += len(line) + 1
 		words += len(strings.Fields(line))
 	}
+
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "wc: read error: %v\n", err)
+		return 0, 0, 0, fmt.Errorf("read error: %w", err)
 	}
 
 	return
 }
 
 func cmdHelp() {
-	fmt.Println("Available commands:")
-	fmt.Println("  cat FILE [FILE...]  - Display file contents")
-	fmt.Println("  ls [DIR]           - List directory contents")
-	fmt.Println("  grep PATTERN FILE  - Search for pattern in file")
-	fmt.Println("  wc FILE            - Count lines, words, and bytes")
-	fmt.Println("  help               - Show this help")
-	fmt.Println("  exit               - Exit the shell")
+	title := "MY-SHELL(1)"
+	width := 30
+	padding := strings.Repeat(" ", width-len(title))
+
+	fmt.Printf("%s%sGeneral Commands Manual%s%s\n\n", title, padding, padding, title)
+
+	fmt.Println("NAME")
+	fmt.Println("     my-shell — simple Unix-like shell implemented in Go")
+	fmt.Println()
+
+	fmt.Println("SYNOPSIS")
+	fmt.Println("     cat FILE [FILE...]")
+	fmt.Println("     ls [DIR or FILE]")
+	fmt.Println("     grep PATTERN FILE")
+	fmt.Println("     wc FILE")
+	fmt.Println("     help")
+	fmt.Println("     exit")
+	fmt.Println()
+
+	fmt.Println("DESCRIPTION")
+	fmt.Println("     These commands provide basic file inspection and text processing.")
 }
