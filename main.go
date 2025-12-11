@@ -58,7 +58,7 @@ func execInput(input string) error {
 
 func cmdCat(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("non file oparand")
+		return fmt.Errorf("non file operand")
 	}
 
 	for _, filename := range args {
